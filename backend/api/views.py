@@ -7,6 +7,7 @@ from recipes.models import User
 from .serializers import (
     UserSerializer, AuthenticationUserSerializer, ChangePasswordSerializer
 )
+from .pagination import PageNumberLimitPagination
 
 
 class UserViewSet(
@@ -16,6 +17,7 @@ class UserViewSet(
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = (permissions.AllowAny,)
+    pagination_class = (PageNumberLimitPagination)
 
     def perform_create(self, serializer):
         password = make_password(
@@ -35,13 +37,34 @@ class UserViewSet(
             return AuthenticationUserSerializer
         return self.serializer_class
 
+    def get_serializer_context(self):
+        user = self.request.user
+        if user.is_authenticated:
+            followers = self.queryset.filter(
+                subsriptions__user=self.request.user
+            )
+            return {
+                'request': self.request,
+                'format': self.format_kwarg,
+                'view': self,
+                'followers': followers,
+            }
+        return super().get_serializer_context()
+
     @action(
         detail=False,
         methods=['GET'],
         permission_classes=(permissions.IsAuthenticated,)
     )
     def me(self, request):
-        serializer = AuthenticationUserSerializer(request.user)
+        followers = self.queryset.filter(subsriptions__user=request.user)
+        serializer = AuthenticationUserSerializer(
+            request.user,
+            context={
+                'request': request,
+                'followers': followers,
+            }
+        )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(

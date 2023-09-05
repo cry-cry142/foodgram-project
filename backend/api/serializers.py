@@ -32,6 +32,12 @@ class AuthenticationUserSerializer(UserSerializer):
         extra_kwargs = {}
 
     def get_is_subscribed(self, obj):
+        # request = self.context.get('request')
+        if (
+            # request.user.subscribers.filter(follower=obj)
+            obj in self.context['followers']
+        ):
+            return True
         return False
 
     # def validate_username(self, value):
