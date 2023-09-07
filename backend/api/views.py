@@ -2,12 +2,15 @@ from django.contrib.auth.hashers import make_password, check_password
 from rest_framework import viewsets, mixins, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django_filters.rest_framework import DjangoFilterBackend
 
-from recipes.models import User
+from recipes.models import User, Tag, Ingredient
 from .serializers import (
-    UserSerializer, AuthenticationUserSerializer, ChangePasswordSerializer
+    UserSerializer, AuthenticationUserSerializer, ChangePasswordSerializer,
+    TagSerializer, IngredientSerializer
 )
 from .pagination import PageNumberLimitPagination
+from .filters import ParticalNameFilter
 
 
 class UserViewSet(
@@ -96,3 +99,21 @@ class UserViewSet(
         )
         user.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class TagViewSet(
+    mixins.RetrieveModelMixin, mixins.ListModelMixin,
+    viewsets.GenericViewSet
+):
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer
+
+
+class IngredientViewSet(
+    mixins.RetrieveModelMixin, mixins.ListModelMixin,
+    viewsets.GenericViewSet
+):
+    queryset = Ingredient.objects.all()
+    serializer_class = IngredientSerializer
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = ParticalNameFilter

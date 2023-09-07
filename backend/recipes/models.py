@@ -5,9 +5,17 @@ User = get_user_model()
 
 
 class Tag(models.Model):
-    name = models.CharField(max_length=16)
-    color = models.CharField(max_length=16)
-    slug = models.SlugField()
+    name = models.CharField(max_length=200)
+    color = models.CharField(max_length=7)
+    slug = models.SlugField(max_length=200, unique=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(color__regex=r'^#[a-fA-F0-9]{6}$'),
+                name='color_in_HEX'
+            ),
+        ]
 
     def __str__(self) -> str:
         return self.name
@@ -51,3 +59,11 @@ class IngredientRecipe(models.Model):
         on_delete=models.CASCADE
     )
     amount = models.IntegerField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['recipe', 'ingredient'],
+                name='unique_ingredient_in_recipe'
+            ),
+        ]

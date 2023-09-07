@@ -1,7 +1,7 @@
 from rest_framework.validators import UniqueValidator
 from rest_framework import serializers
 
-from recipes.models import User
+from recipes.models import User, Tag, Ingredient
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -32,25 +32,25 @@ class AuthenticationUserSerializer(UserSerializer):
         extra_kwargs = {}
 
     def get_is_subscribed(self, obj):
-        # request = self.context.get('request')
         if (
-            # request.user.subscribers.filter(follower=obj)
             obj in self.context['followers']
         ):
             return True
         return False
 
-    # def validate_username(self, value):
-    #     if (
-    #         self.context['request'].method == 'POST'
-    #         and User.objects.filter(username=value).exists()
-    #     ):
-    #         raise serializers.ValidationError(
-    #             {'username': 'Данное имя пользователя уже используется.'}
-    #         )
-    #     return value
-
 
 class ChangePasswordSerializer(serializers.Serializer):
     new_password = serializers.CharField(max_length=150, required=True)
     current_password = serializers.CharField(max_length=150, required=True)
+
+
+class TagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tag
+        fields = ('id', 'name', 'color', 'slug')
+
+
+class IngredientSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Ingredient
+        fields = ('id', 'name', 'measurement_unit')
