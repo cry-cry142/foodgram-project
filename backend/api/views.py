@@ -10,7 +10,7 @@ from .serializers import (
     TagSerializer, IngredientSerializer
 )
 from .pagination import PageNumberLimitPagination
-from .filters import ParticalNameFilter
+from .filters import PartialNameFilter
 
 
 class UserViewSet(
@@ -116,4 +116,4 @@ class IngredientViewSet(
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     filter_backends = (DjangoFilterBackend,)
-    filterset_class = ParticalNameFilter
+    filterset_class = PartialNameFilter
