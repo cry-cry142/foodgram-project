@@ -34,7 +34,8 @@ class Recipe(models.Model):
     text = models.TextField()
     cooking_time = models.IntegerField()
     ingredients = models.ManyToManyField(
-        'Ingredient'
+        'Ingredient',
+        through='IngredientRecipe',
     )
     author = models.ForeignKey(
         User,
@@ -52,10 +53,12 @@ class Ingredient(models.Model):
 class IngredientRecipe(models.Model):
     recipe = models.ForeignKey(
         'Recipe',
+        related_name='m2m',
         on_delete=models.CASCADE
     )
     ingredient = models.ForeignKey(
         'Ingredient',
+        related_name='m2m',
         on_delete=models.CASCADE
     )
     amount = models.IntegerField()
@@ -67,3 +70,6 @@ class IngredientRecipe(models.Model):
                 name='unique_ingredient_in_recipe'
             ),
         ]
+
+    def __repr__(self):
+        return self.recipe - self.ingredient

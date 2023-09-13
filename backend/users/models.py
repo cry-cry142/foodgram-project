@@ -23,7 +23,7 @@ class Subscriptions(models.Model):
     follower = models.ForeignKey(
         'User',
         on_delete=models.CASCADE,
-        related_name='subsriptions'
+        related_name='subscriptions'
     )
 
     class Meta:

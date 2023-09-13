@@ -4,13 +4,14 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 
-from recipes.models import User, Tag, Ingredient
+from recipes.models import User, Tag, Ingredient, Recipe
 from .serializers import (
-    UserSerializer, AuthenticationUserSerializer, ChangePasswordSerializer,
-    TagSerializer, IngredientSerializer
+    UserSerializer, AnonimusUserSerializer, ChangePasswordSerializer,
+    TagSerializer, IngredientSerializer, RecipeSerializer
 )
 from .pagination import PageNumberLimitPagination
 from .filters import PartialNameFilter
+from .decorators import not_allowed_put_method
 
 
 class UserViewSet(
@@ -36,23 +37,23 @@ class UserViewSet(
         return super().get_permissions()
 
     def get_serializer_class(self):
-        if self.request.user.is_authenticated:
-            return AuthenticationUserSerializer
+        if self.action == 'create':
+            return AnonimusUserSerializer
         return self.serializer_class
 
-    def get_serializer_context(self):
-        user = self.request.user
-        if user.is_authenticated:
-            followers = self.queryset.filter(
-                subsriptions__user=self.request.user
-            )
-            return {
-                'request': self.request,
-                'format': self.format_kwarg,
-                'view': self,
-                'followers': followers,
-            }
-        return super().get_serializer_context()
+    # def get_serializer_context(self):
+    #     user = self.request.user
+    #     if user.is_authenticated:
+    #         followers = self.queryset.filter(
+    #             subsriptions__user=self.request.user
+    #         )
+    #         return {
+    #             'request': self.request,
+    #             'format': self.format_kwarg,
+    #             'view': self,
+    #             'followers': followers,
+    #         }
+    #     return super().get_serializer_context()
 
     @action(
         detail=False,
@@ -61,7 +62,7 @@ class UserViewSet(
     )
     def me(self, request):
         followers = self.queryset.filter(subsriptions__user=request.user)
-        serializer = AuthenticationUserSerializer(
+        serializer = UserSerializer(
             request.user,
             context={
                 'request': request,
@@ -117,3 +118,10 @@ class IngredientViewSet(
     serializer_class = IngredientSerializer
     filter_backends = (DjangoFilterBackend,)
     filterset_class = PartialNameFilter
+
+
+@not_allowed_put_method
+class RecipeViewSet(viewsets.ModelViewSet):
+    queryset = Recipe.objects.all()
+    serializer_class = RecipeSerializer
+    pagination_class = (PageNumberLimitPagination)
