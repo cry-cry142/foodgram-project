@@ -1,5 +1,4 @@
-from rest_framework import status
-from rest_framework.response import Response
+from rest_framework.exceptions import MethodNotAllowed
 
 
 def not_allowed_put_method(cls):
@@ -11,11 +10,8 @@ def not_allowed_put_method(cls):
     upd = cls.update
 
     def update(self, request, *args, **kwargs):
-        if self.action == 'update':
-            response = {'detail': 'Method \"PUT\" not allowed.'}
-            return Response(
-                response, status=status.HTTP_405_METHOD_NOT_ALLOWED
-            )
+        if request.method == 'PUT':
+            raise MethodNotAllowed(request.method)
         return upd(self, request, *args, **kwargs)
 
     cls.update = update

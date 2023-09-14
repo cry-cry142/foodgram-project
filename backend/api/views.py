@@ -11,6 +11,7 @@ from .serializers import (
     TagSerializer, IngredientSerializer, RecipeSerializer
 )
 from .pagination import PageNumberLimitPagination
+from .permissions import IsResponsibleUserOrReadOnly
 from .filters import PartialNameFilter
 from .decorators import not_allowed_put_method
 
@@ -62,7 +63,7 @@ class UserViewSet(
         permission_classes=(permissions.IsAuthenticated,)
     )
     def me(self, request):
-        followers = self.queryset.filter(subsriptions__user=request.user)
+        followers = self.queryset.filter(subscriptions__user=request.user)
         serializer = UserSerializer(
             request.user,
             context={
@@ -126,6 +127,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
     pagination_class = (PageNumberLimitPagination)
+    permission_classes = (IsResponsibleUserOrReadOnly,)
 
     def perform_create(self, serializer):
         serializer.save(

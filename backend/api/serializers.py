@@ -82,7 +82,7 @@ class Base64ImageField(serializers.ImageField):
 
 class RecipeIngredientSerializer(serializers.ModelSerializer):
     id = serializers.PrimaryKeyRelatedField(
-        read_only=True, source='ingredient'
+        queryset=Ingredient.objects.all(), source='ingredient', required=True
     )
     name = serializers.CharField(source='ingredient.name', read_only=True)
     measurement_unit = serializers.CharField(
@@ -172,7 +172,8 @@ class RecipeSerializer(serializers.ModelSerializer):
     def to_internal_value(self, data):
         tags_id = data.get('tags')
         tags = []
-        for tag_id in tags_id:
-            tags.append({'id': tag_id})
-        data['tags'] = tags
+        if tags_id:
+            for tag_id in tags_id:
+                tags.append({'id': tag_id})
+            data['tags'] = tags
         return super().to_internal_value(data)
