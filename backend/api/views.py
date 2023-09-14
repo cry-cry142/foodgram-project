@@ -1,8 +1,9 @@
 from django.contrib.auth.hashers import make_password, check_password
+from django_filters.rest_framework import DjangoFilterBackend
+from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, mixins, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django_filters.rest_framework import DjangoFilterBackend
 
 from recipes.models import User, Tag, Ingredient, Recipe
 from .serializers import (
@@ -125,3 +126,14 @@ class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
     pagination_class = (PageNumberLimitPagination)
+
+    def perform_create(self, serializer):
+        serializer.save(
+            author=self.request.user,
+        )
+
+    def destroy(self, request, *args, **kwargs):
+        recipe = get_object_or_404(self.queryset, id=kwargs.get('pk'))
+        recipe.tags.clear()
+        recipe.ingredients.clear()
+        return super().destroy(request, *args, **kwargs)
