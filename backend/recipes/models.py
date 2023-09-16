@@ -44,6 +44,9 @@ class Recipe(models.Model):
     )
     date = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        ordering = ['-date']
+
 
 class Ingredient(models.Model):
     name = models.CharField(max_length=200)
@@ -69,7 +72,51 @@ class IngredientRecipe(models.Model):
                 fields=['recipe', 'ingredient'],
                 name='unique_ingredient_in_recipe'
             ),
+            models.CheckConstraint(
+                check=models.Q(amount__gte=1),
+                name='min_amount = 1'
+            ),
         ]
 
     def __repr__(self):
         return self.recipe - self.ingredient
+
+
+class FavouriteRecipes(models.Model):
+    user = models.ForeignKey(
+        User,
+        related_name='favourite_recipes',
+        on_delete=models.CASCADE,
+    )
+    recipe = models.ForeignKey(
+        'Recipe',
+        related_name='favourite',
+        on_delete=models.CASCADE,
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'recipe'],
+                name='unique_favourite'
+            ),
+        ]
+
+    def __repr__(self):
+        return self.user - self.recipe
+
+
+class ShoppingCart(models.Model):
+    user = models.ForeignKey(
+        User,
+        related_name='cart',
+        on_delete=models.CASCADE,
+    )
+    recipe = models.ForeignKey(
+        'Recipe',
+        related_name='carts',
+        on_delete=models.CASCADE,
+    )
+
+    def __repr__(self):
+        return self.user - self.recipe

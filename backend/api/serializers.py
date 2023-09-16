@@ -1,10 +1,9 @@
 import base64
 from django.core.files.base import ContentFile
-from django.core.exceptions import ObjectDoesNotExist
-from django.shortcuts import get_object_or_404
+from django.core.validators import MinValueValidator
 from django.db.utils import IntegrityError
 from rest_framework.validators import UniqueValidator
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework import serializers
 
 from recipes.models import User, Tag, Ingredient, Recipe, IngredientRecipe
@@ -57,6 +56,7 @@ class TagSerializer(serializers.ModelSerializer):
         model = Tag
         fields = ('id', 'name', 'color', 'slug')
         extra_kwargs = {
+            # 'id': {'read_only': False},
             'name': {'read_only': True},
             'color': {'read_only': True},
             'slug': {'read_only': True},
@@ -92,6 +92,11 @@ class RecipeIngredientSerializer(serializers.ModelSerializer):
     class Meta:
         model = IngredientRecipe
         fields = ('id', 'name', 'measurement_unit', 'amount')
+        extra_kwargs = {
+            'amount': {
+                'validators': [MinValueValidator(1, 'Минимальное значение 1.')]
+            }
+        }
 
 
 class RecipeSerializer(serializers.ModelSerializer):
@@ -110,37 +115,34 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data.pop('tags')
-        validated_data.pop('m2m')
-        ingredients = self.initial_data['ingredients']
+        ingredients = validated_data.pop('m2m')
         tags = self.initial_data['tags']
         tags = [obj['id'] for obj in tags]
-        recipe = Recipe.objects.create(**validated_data)
+        recipe = self.Meta.model.objects.create(**validated_data)
         try:
             recipe.tags.add(*tags)
         except IntegrityError:
+            recipe.delete()
             raise NotFound(detail={
                 'tags': 'Один из параметров не найден.'
             })
-        try:
-            for ingredient in ingredients:
-                ingredient_obj = Ingredient.objects.get(
-                    id=ingredient.get('id')
-                )
-                recipe.m2m.create(
-                    recipe=recipe,
-                    ingredient=ingredient_obj,
-                    amount=ingredient.get('amount')
-                )
-        except ObjectDoesNotExist:
-            raise NotFound(detail={
-                'ingredients': 'Один из параметров не найден.'
+        except ValueError:
+            recipe.delete()
+            errors = [type(tag) for tag in tags if type(tag) is not int]
+            raise ValidationError(detail={
+                'tags': f'Ожидались параметры \'int\', получены {errors}.'
             })
+        for ingredient in ingredients:
+            recipe.m2m.create(
+                recipe=recipe,
+                ingredient=ingredient['ingredient'],
+                amount=ingredient['amount']
+            )
         return recipe
 
     def update(self, instance, validated_data):
         validated_data.pop('tags')
-        validated_data.pop('m2m')
-        ingredients = self.initial_data['ingredients']
+        ingredients = validated_data.pop('m2m')
         tags = self.initial_data['tags']
         tags = [obj['id'] for obj in tags]
 
@@ -153,20 +155,12 @@ class RecipeSerializer(serializers.ModelSerializer):
             })
 
         instance.ingredients.clear()
-        try:
-            for ingredient in ingredients:
-                ingredient_obj = Ingredient.objects.get(
-                    id=ingredient.get('id')
-                )
-                instance.m2m.create(
-                    recipe=instance,
-                    ingredient=ingredient_obj,
-                    amount=ingredient.get('amount')
-                )
-        except ObjectDoesNotExist:
-            raise NotFound(detail={
-                'ingredients': 'Один из параметров не найден.'
-            })
+        for ingredient in ingredients:
+            instance.m2m.create(
+                recipe=instance,
+                ingredient=ingredient['ingredient'],
+                amount=ingredient['amount']
+            )
         return super().update(instance, validated_data)
 
     def to_internal_value(self, data):
