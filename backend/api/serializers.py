@@ -104,14 +104,29 @@ class RecipeSerializer(serializers.ModelSerializer):
     ingredients = RecipeIngredientSerializer(many=True, source='m2m')
     author = UserSerializer(read_only=True)
     tags = TagSerializer(many=True, required=True)
+    is_favorited = serializers.SerializerMethodField()
+    is_in_shopping_cart = serializers.SerializerMethodField()
 
     class Meta:
         model = Recipe
         fields = (
             'id', 'tags', 'author', 'ingredients',
+            'is_favorited', 'is_in_shopping_cart',
             'name', 'image', 'text', 'cooking_time'
         )
         depth = 1
+
+    def get_is_favorited(self, obj):
+        user = self.context['request'].user
+        if user.is_authenticated and obj.favourite.filter(user=user).exists():
+            return True
+        return False
+
+    def get_is_in_shopping_cart(self, obj):
+        user = self.context['request'].user
+        if user.is_authenticated and obj.carts.filter(user=user).exists():
+            return True
+        return False
 
     def create(self, validated_data):
         validated_data.pop('tags')
@@ -152,6 +167,11 @@ class RecipeSerializer(serializers.ModelSerializer):
         except IntegrityError:
             raise NotFound(detail={
                 'tags': 'Один из параметров не найден.'
+            })
+        except ValueError:
+            errors = [type(tag) for tag in tags if type(tag) is not int]
+            raise ValidationError(detail={
+                'tags': f'Ожидались параметры \'int\', получены {errors}.'
             })
 
         instance.ingredients.clear()

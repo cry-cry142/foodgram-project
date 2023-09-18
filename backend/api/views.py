@@ -12,7 +12,7 @@ from .serializers import (
 )
 from .pagination import PageNumberLimitPagination
 from .permissions import IsResponsibleUserOrReadOnly
-from .filters import PartialNameFilter
+from .filters import PartialNameFilter, RecipeFilter
 from .decorators import not_allowed_put_method
 
 
@@ -23,7 +23,7 @@ class UserViewSet(
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = (permissions.AllowAny,)
-    pagination_class = (PageNumberLimitPagination)
+    pagination_class = PageNumberLimitPagination
 
     def perform_create(self, serializer):
         password = make_password(
@@ -126,8 +126,10 @@ class IngredientViewSet(
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
-    pagination_class = (PageNumberLimitPagination)
+    pagination_class = PageNumberLimitPagination
     permission_classes = (IsResponsibleUserOrReadOnly,)
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = RecipeFilter
 
     def perform_create(self, serializer):
         serializer.save(
