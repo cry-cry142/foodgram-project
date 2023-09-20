@@ -6,7 +6,9 @@ from rest_framework.validators import UniqueValidator
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework import serializers
 
-from recipes.models import User, Tag, Ingredient, Recipe, IngredientRecipe
+from recipes.models import (
+    User, Tag, Ingredient, Recipe, IngredientRecipe
+)
 
 
 class AnonimusUserSerializer(serializers.ModelSerializer):
@@ -191,3 +193,18 @@ class RecipeSerializer(serializers.ModelSerializer):
                 tags.append({'id': tag_id})
             data['tags'] = tags
         return super().to_internal_value(data)
+
+
+class FavouriteRecipesSerializer(serializers.ModelSerializer):
+    image = serializers.ImageField()
+
+
+    class Meta:
+        model = Recipe
+        fields = (
+            'id', 'name', 'image', 'cooking_time'
+        )
+        extra_kwargs = {
+            'name': {'read_only': True},
+            'cooking_time': {'read_only': True},
+        }
