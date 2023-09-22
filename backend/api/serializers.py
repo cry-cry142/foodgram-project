@@ -198,7 +198,6 @@ class RecipeSerializer(serializers.ModelSerializer):
 class FavouriteRecipesSerializer(serializers.ModelSerializer):
     image = serializers.ImageField()
 
-
     class Meta:
         model = Recipe
         fields = (
@@ -208,3 +207,33 @@ class FavouriteRecipesSerializer(serializers.ModelSerializer):
             'name': {'read_only': True},
             'cooking_time': {'read_only': True},
         }
+
+
+class SubscriptionsSerializer(UserSerializer):
+    recipes = serializers.SerializerMethodField(source='recipe.all')
+    recipes_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = (
+            'email', 'id', 'username', 'first_name',
+            'last_name', 'is_subscribed', 'recipes',
+            'recipes_count'
+        )
+        read_only_fields = fields
+
+    def get_recipes(self, obj):
+        try:
+            limit = int(
+                self.context['request'].query_params.get('recipes_limit')
+            )
+        except Exception:
+            limit = None
+        recipes = obj.recipe.all()
+        if limit:
+            recipes = recipes[:limit]
+        serializer = FavouriteRecipesSerializer(recipes, many=True)
+        return serializer.data
+
+    def get_recipes_count(self, obj):
+        return obj.recipe.count()

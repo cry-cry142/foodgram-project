@@ -7,11 +7,12 @@ from rest_framework.response import Response
 
 
 from recipes.models import (
-    User, Tag, Ingredient, Recipe, FavouriteRecipes
+    User, Tag, Ingredient, Recipe
 )
 from .serializers import (
     UserSerializer, AnonimusUserSerializer, ChangePasswordSerializer,
-    TagSerializer, IngredientSerializer, RecipeSerializer, FavouriteRecipesSerializer
+    TagSerializer, IngredientSerializer, RecipeSerializer,
+    FavouriteRecipesSerializer, SubscriptionsSerializer
 )
 from .pagination import PageNumberLimitPagination
 from .permissions import IsResponsibleUserOrReadOnly
@@ -45,20 +46,6 @@ class UserViewSet(
         if self.action == 'create':
             return AnonimusUserSerializer
         return self.serializer_class
-
-    # def get_serializer_context(self):
-    #     user = self.request.user
-    #     if user.is_authenticated:
-    #         followers = self.queryset.filter(
-    #             subsriptions__user=self.request.user
-    #         )
-    #         return {
-    #             'request': self.request,
-    #             'format': self.format_kwarg,
-    #             'view': self,
-    #             'followers': followers,
-    #         }
-    #     return super().get_serializer_context()
 
     @action(
         detail=False,
@@ -105,6 +92,73 @@ class UserViewSet(
         )
         user.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(
+            detail=False,
+            methods=['GET'],
+            permission_classes=(permissions.IsAuthenticated,),
+            pagination_class=PageNumberLimitPagination,
+    )
+    def subscriptions(self, request):
+        q = User.objects.filter(subscribers__follower=request.user)
+
+        page = self.paginate_queryset(q)
+        context = {
+            'request': request,
+        }
+        if page is not None:
+            serializer = SubscriptionsSerializer(
+                page,
+                many=True,
+                context=context
+            )
+            return self.get_paginated_response(serializer.data)
+
+        serializer = SubscriptionsSerializer(
+            q,
+            many=True,
+            context=context
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(
+            detail=True,
+            methods=['POST', 'DELETE'],
+            permission_classes=(permissions.IsAuthenticated,)
+    )
+    def subscribe(self, request, pk):
+        pk = int(pk)
+        user = get_object_or_404(User, pk=pk)
+        if request.method == 'POST':
+            if user.subscribers.filter(follower=request.user).exists():
+                return Response(
+                    {'errors': 'Пользователь уже подписан.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            if user == request.user:
+                return Response(
+                    {'errors': 'Пользователь не может подписаться на себя.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            serializer = SubscriptionsSerializer(
+                user,
+                context={'request': request}
+            )
+            user.subscribers.create(
+                follower=request.user
+            )
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        elif request.method == 'DELETE':
+            if not user.subscribers.filter(follower=request.user).exists():
+                return Response(
+                    {'errors': 'Пользователь не подписан.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            user.subscribers.filter(
+                follower=request.user
+            ).delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
 class TagViewSet(
