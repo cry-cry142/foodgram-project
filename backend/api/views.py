@@ -100,7 +100,7 @@ class UserViewSet(
             pagination_class=PageNumberLimitPagination,
     )
     def subscriptions(self, request):
-        q = User.objects.filter(subscribers__follower=request.user)
+        q = self.queryset.filter(subscribers__follower=request.user)
 
         page = self.paginate_queryset(q)
         context = {
@@ -128,7 +128,7 @@ class UserViewSet(
     )
     def subscribe(self, request, pk):
         pk = int(pk)
-        user = get_object_or_404(User, pk=pk)
+        user = get_object_or_404(self.queryset, pk=pk)
         if request.method == 'POST':
             if user.subscribers.filter(follower=request.user).exists():
                 return Response(
@@ -198,6 +198,79 @@ class RecipeViewSet(viewsets.ModelViewSet):
         recipe.tags.clear()
         recipe.ingredients.clear()
         return super().destroy(request, *args, **kwargs)
+
+    @action(
+            detail=True,
+            methods=['POST', 'DELETE'],
+            permission_classes=(permissions.IsAuthenticated,)
+    )
+    def shopping_cart(self, request, pk):
+        pk = int(pk)
+        recipe = get_object_or_404(self.queryset, pk=pk)
+        if request.method == 'POST':
+            if recipe.carts.filter(user=request.user).exists():
+                return Response(
+                    {'errors': 'Рецепт уже в корзине.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            serializer = FavouriteRecipesSerializer(
+                recipe,
+                context={'request': request}
+            )
+            recipe.carts.create(
+                user=request.user
+            )
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        elif request.method == 'DELETE':
+            if not recipe.carts.filter(user=request.user).exists():
+                return Response(
+                    {'errors': 'Рецепта нет в корзине.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            recipe.carts.filter(
+                user=request.user
+            ).delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    @action(
+            detail=False,
+            methods=['GET'],
+            permission_classes=(permissions.IsAuthenticated,)
+    )
+    def download_shopping_cart(self, request):
+        recipes = self.queryset.filter(carts__user=request.user)
+        cart = dict()
+        for recipe in recipes:
+            ingredient_list = recipe.ingredients.all()
+            for ingredient in ingredient_list:
+                count = int(
+                    recipe.m2m.get(
+                        ingredient=ingredient
+                    ).amount
+                )
+
+                if not cart.get(ingredient.id):
+                    cart[ingredient.id] = {
+                        'name': ingredient.name,
+                        'measurement_unit': ingredient.measurement_unit,
+                        'count': count
+                    }
+                else:
+                    cart[ingredient.id]['count'] += count
+        data = ''
+        for key, value in cart.items():
+            data += (f'[{key}] {value["name"]} - {value["count"]} '
+                     f'{value["measurement_unit"]}\n')
+
+        return Response(
+            data=data,
+            content_type='text/plain',
+            headers={
+                'Content-Disposition': 'attachment; filename=List_Buy.txt'
+            },
+            status=status.HTTP_200_OK
+        )
 
 
 @api_view(['POST', 'DELETE'])

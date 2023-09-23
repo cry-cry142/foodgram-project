@@ -58,7 +58,6 @@ class TagSerializer(serializers.ModelSerializer):
         model = Tag
         fields = ('id', 'name', 'color', 'slug')
         extra_kwargs = {
-            # 'id': {'read_only': False},
             'name': {'read_only': True},
             'color': {'read_only': True},
             'slug': {'read_only': True},
