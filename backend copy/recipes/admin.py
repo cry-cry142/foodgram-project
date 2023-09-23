@@ -1,18 +1,12 @@
 from django.contrib import admin
 from .models import (
-    Recipe, Ingredient, Tag, IngredientRecipe
+    Recipe, Ingredient, Tag
 )
-
-
-class IngredientRecipeInline(admin.TabularInline):
-    model = IngredientRecipe
-    extra = 1
 
 
 class RecipeAdmin(admin.ModelAdmin):
     list_display = ('name', 'image', 'text', 'cooking_time', 'author')
-    filter_vertical = ('tags')
-    inlines = [IngredientRecipeInline]
+    filter_vertical = ('tags', 'ingredients')
 
 
 class IngredientAdmin(admin.ModelAdmin):
