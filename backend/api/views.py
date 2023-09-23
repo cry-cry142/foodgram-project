@@ -240,6 +240,18 @@ class RecipeViewSet(viewsets.ModelViewSet):
             permission_classes=(permissions.IsAuthenticated,)
     )
     def download_shopping_cart(self, request):
+        from dataclasses import dataclass
+
+        @dataclass
+        class Ingredient:
+            key: int
+            name: str
+            count: int
+            unit: str
+
+            def __str__(self):
+                return f'{self.name} - {self.count} {self.unit}'
+
         recipes = self.queryset.filter(carts__user=request.user)
         cart = dict()
         for recipe in recipes:
@@ -252,19 +264,16 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 )
 
                 if not cart.get(ingredient.id):
-                    cart[ingredient.id] = {
-                        'name': ingredient.name,
-                        'measurement_unit': ingredient.measurement_unit,
-                        'count': count
-                    }
+                    cart[ingredient.id] = Ingredient(
+                        ingredient.id, ingredient.name,
+                        count, ingredient.measurement_unit
+                    )
                 else:
-                    cart[ingredient.id]['count'] += count
-        data = []
-        for key, value in cart.items():
-            data.append(f'[{key}] {value["name"]} - {value["count"]} '
-                        f'{value["measurement_unit"]}\n')
-        data.sort()
+                    cart[ingredient.id].count += count
 
+        data = ''
+        for ingredient in cart.values():
+            data += str(ingredient) + '\n'
         return HttpResponse(
             data,
             content_type='text/plain',
