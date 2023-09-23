@@ -29,7 +29,7 @@ class Recipe(models.Model):
         default=None
     )
     tags = models.ManyToManyField(
-        'Tag'
+        'Tag',
     )
     text = models.TextField()
     cooking_time = models.IntegerField()

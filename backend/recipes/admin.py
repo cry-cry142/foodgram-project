@@ -11,7 +11,7 @@ class IngredientRecipeInline(admin.TabularInline):
 
 class RecipeAdmin(admin.ModelAdmin):
     list_display = ('name', 'image', 'text', 'cooking_time', 'author')
-    filter_vertical = ('tags')
+    filter_vertical = ('tags',)
     inlines = [IngredientRecipeInline]
 
 

@@ -1,6 +1,7 @@
 from django.contrib.auth.hashers import make_password, check_password
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
+from django.http import HttpResponse
 from rest_framework import viewsets, mixins, permissions, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
@@ -258,18 +259,15 @@ class RecipeViewSet(viewsets.ModelViewSet):
                     }
                 else:
                     cart[ingredient.id]['count'] += count
-        data = ''
+        data = []
         for key, value in cart.items():
-            data += (f'[{key}] {value["name"]} - {value["count"]} '
-                     f'{value["measurement_unit"]}\n')
+            data.append(f'[{key}] {value["name"]} - {value["count"]} '
+                        f'{value["measurement_unit"]}\n')
+        data.sort()
 
-        return Response(
-            data=data,
+        return HttpResponse(
+            data,
             content_type='text/plain',
-            headers={
-                'Content-Disposition': 'attachment; filename=List_Buy.txt'
-            },
-            status=status.HTTP_200_OK
         )
 
 
