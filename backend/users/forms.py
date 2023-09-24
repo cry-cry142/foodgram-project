@@ -1,5 +1,5 @@
 from django.forms import ModelForm, PasswordInput, CharField
-
+from django.core.exceptions import ValidationError
 from .models import User
 
 
@@ -8,8 +8,13 @@ class UserForm(ModelForm):
 
     class Meta:
         model = User
-        fields = '__all__'
+        fields = (
+            'username', 'email', 'first_name',
+            'last_name', 'is_staff', 'password'
+        )
 
-    def set_password(self, obj):
-        self
-        return None
+    def clean(self):
+        instance = self.instance
+        if not instance.id and not instance.password:
+            self.add_error('password', ValidationError('Пароль обязателен.'))
+        return super().clean()
