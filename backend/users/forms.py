@@ -15,6 +15,10 @@ class UserForm(ModelForm):
 
     def clean(self):
         instance = self.instance
-        if not instance.id and not instance.password:
+        pwd = self.cleaned_data.get('password')
+        if (
+            not instance.id
+            and not pwd
+        ):
             self.add_error('password', ValidationError('Пароль обязателен.'))
         return super().clean()

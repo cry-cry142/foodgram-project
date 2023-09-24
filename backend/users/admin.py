@@ -22,5 +22,6 @@ class UserAdmin(admin.ModelAdmin):
             user = self.model.objects.get(id=obj.id)
         if obj.password:
             obj.password = make_password(obj.password)
-        obj.password = user.password
+        elif user:
+            obj.password = user.password
         return super().save_model(request, obj, form, change)
