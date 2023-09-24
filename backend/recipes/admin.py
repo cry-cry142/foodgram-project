@@ -10,9 +10,14 @@ class IngredientRecipeInline(admin.TabularInline):
 
 
 class RecipeAdmin(admin.ModelAdmin):
-    list_display = ('name', 'image', 'text', 'cooking_time', 'author')
+    list_display = (
+        'name', 'image', 'text', 'cooking_time', 'author', 'count_subscribers'
+    )
     filter_vertical = ('tags',)
     inlines = [IngredientRecipeInline]
+
+    def count_subscribers(self, obj):
+        return obj.favourite.count()
 
 
 class IngredientAdmin(admin.ModelAdmin):

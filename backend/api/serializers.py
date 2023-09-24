@@ -42,7 +42,7 @@ class UserSerializer(AnonimusUserSerializer):
         user = self.context.get('request').user
         if (
             user.is_authenticated
-            and obj.subscriptions.filter(user=user).exists()
+            and user.subscriptions.filter(user=obj).exists()
         ):
             return True
         return False
