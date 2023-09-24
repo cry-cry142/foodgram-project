@@ -13,6 +13,16 @@ class User(AbstractUser):
     def __str__(self):
         return self.username
 
+    def has_perm(self, perm, obj=None):
+        if self.is_active and self.is_staff:
+            return True
+        return super().has_perm(perm, obj)
+
+    def has_module_perms(self, app_label):
+        if self.is_active and self.is_staff:
+            return True
+        return super().has_module_perms(app_label)
+
 
 class Subscriptions(models.Model):
     user = models.ForeignKey(
