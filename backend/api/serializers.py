@@ -5,7 +5,6 @@ from django.db.utils import IntegrityError
 from rest_framework.validators import UniqueValidator
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework import serializers
-
 from recipes.models import (
     User, Tag, Ingredient, Recipe, IngredientRecipe
 )

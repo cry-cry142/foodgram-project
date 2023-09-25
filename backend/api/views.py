@@ -6,7 +6,6 @@ from rest_framework import viewsets, mixins, permissions, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 
-
 from recipes.models import (
     User, Tag, Ingredient, Recipe
 )
