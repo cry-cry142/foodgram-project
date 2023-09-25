@@ -25,7 +25,10 @@ class UserViewSet(
     mixins.CreateModelMixin, mixins.ListModelMixin,
     mixins.RetrieveModelMixin, viewsets.GenericViewSet
 ):
-    queryset = User.objects.all()
+    queryset = User.objects.prefetch_related(
+        'subscriptions__user',
+        'subscribers__follower'
+    ).all()
     serializer_class = UserSerializer
     permission_classes = (permissions.AllowAny,)
     pagination_class = PageNumberLimitPagination
@@ -182,7 +185,9 @@ class IngredientViewSet(
 
 @not_allowed_put_method
 class RecipeViewSet(viewsets.ModelViewSet):
-    queryset = Recipe.objects.all()
+    queryset = Recipe.objects.prefetch_related(
+        'carts__user', 'tags', 'm2m__ingredient'
+    ).select_related('author').all()
     serializer_class = RecipeSerializer
     pagination_class = PageNumberLimitPagination
     permission_classes = (IsResponsibleUserOrReadOnly,)
@@ -283,7 +288,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
 @api_view(['POST', 'DELETE'])
 @permission_classes((permissions.IsAuthenticated,))
 def favorite(request, **kwargs):
-    recipe = get_object_or_404(Recipe, id=kwargs['pk'])
+    recipe = get_object_or_404(Recipe.objects.prefetch_related(
+        'favourite__user'
+    ), id=kwargs['pk'])
     favorite_manager = recipe.favourite
     if request.method == 'POST':
         if favorite_manager.filter(user=request.user).exists():
