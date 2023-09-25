@@ -7,13 +7,13 @@ volumes:
 
 services:
   frontend:
-    build: ./frontend/
+    image: crycry142/foodgram_frontend
     volumes:
       - static:/app/result_build/
     depends_on:
       - backend
   nginx:
-    build: ./infra/
+    image: crycry142/foodgram_gateway
     ports:
       - "88:80"
     volumes:
@@ -28,11 +28,10 @@ services:
     volumes:
       - pg_data:/var/lib/postgresql/data
   backend:
-    build: ./backend/
+    image: crycry142/foodgram_backend
     env_file: prod.env
     volumes:
       - static:/backend_static
       - media:/app/media
-      # - ./data:/data
     depends_on:
       - db

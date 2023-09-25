@@ -11,7 +11,7 @@ class Command(BaseCommand):
         base = settings.BASE_DIR
         for row in DictReader(
             open(os.path.join(
-                base, '..', 'data', 'ingredients.csv'), encoding="utf8"
+                base, 'ingredients.csv'), encoding="utf8"
             ),
             fieldnames=('name', 'unit')
         ):
