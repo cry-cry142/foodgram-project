@@ -97,10 +97,10 @@ class UserViewSet(
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
-            detail=False,
-            methods=['GET'],
-            permission_classes=(permissions.IsAuthenticated,),
-            pagination_class=PageNumberLimitPagination,
+        detail=False,
+        methods=['GET'],
+        permission_classes=(permissions.IsAuthenticated,),
+        pagination_class=PageNumberLimitPagination,
     )
     def subscriptions(self, request):
         q = self.queryset.filter(subscribers__follower=request.user)
@@ -125,9 +125,9 @@ class UserViewSet(
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(
-            detail=True,
-            methods=['POST', 'DELETE'],
-            permission_classes=(permissions.IsAuthenticated,)
+        detail=True,
+        methods=['POST', 'DELETE'],
+        permission_classes=(permissions.IsAuthenticated,)
     )
     def subscribe(self, request, pk):
         pk = int(pk)
@@ -205,9 +205,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return super().destroy(request, *args, **kwargs)
 
     @action(
-            detail=True,
-            methods=['POST', 'DELETE'],
-            permission_classes=(permissions.IsAuthenticated,)
+        detail=True,
+        methods=['POST', 'DELETE'],
+        permission_classes=(permissions.IsAuthenticated,)
     )
     def shopping_cart(self, request, pk):
         pk = int(pk)
@@ -239,9 +239,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
     @action(
-            detail=False,
-            methods=['GET'],
-            permission_classes=(permissions.IsAuthenticated,)
+        detail=False,
+        methods=['GET'],
+        permission_classes=(permissions.IsAuthenticated,)
     )
     def download_shopping_cart(self, request):
         from dataclasses import dataclass
