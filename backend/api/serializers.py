@@ -8,6 +8,7 @@ from rest_framework import serializers
 from recipes.models import (
     User, Tag, Ingredient, Recipe, IngredientRecipe
 )
+from users.models import Subscriptions
 
 
 class AnonimusUserSerializer(serializers.ModelSerializer):
@@ -207,7 +208,7 @@ class FavouriteRecipesSerializer(serializers.ModelSerializer):
         }
 
 
-class SubscriptionsSerializer(UserSerializer):
+class UserSubscriptionsSerializer(UserSerializer):
     recipes = serializers.SerializerMethodField(source='recipe.all')
     recipes_count = serializers.SerializerMethodField()
 
@@ -235,3 +236,36 @@ class SubscriptionsSerializer(UserSerializer):
 
     def get_recipes_count(self, obj):
         return obj.recipe.count()
+
+
+class SubscriptionsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Subscriptions
+        fields = (
+            'user', 'follower'
+        )
+        # extra_kwargs = {
+        #     'user': {'required': True, 'read_only': False},
+        #     'follower': {'required': True, 'read_only': False}
+        # }
+
+    def validate(self, data):
+        method = self.context['request'].method
+        is_exist = data['user'].subscribers.filter(
+            follower=data['follower']
+        ).exists()
+
+        if method == 'POST' and is_exist:
+            raise ValidationError(
+                {'errors': 'Пользователь уже подписан.'}
+            )
+        if method == 'DELETE' and not is_exist:
+            raise ValidationError(
+                {'errors': 'Пользователь не подписан.'}
+            )
+        if data['user'] == data['follower']:
+            raise ValidationError(
+                {'errors': 'Пользователь не может подписаться на себя.'}
+            )
+
+        return data

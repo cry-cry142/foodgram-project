@@ -12,12 +12,14 @@ from recipes.models import (
 from .serializers import (
     UserSerializer, AnonimusUserSerializer, ChangePasswordSerializer,
     TagSerializer, IngredientSerializer, RecipeSerializer,
-    FavouriteRecipesSerializer, SubscriptionsSerializer
+    FavouriteRecipesSerializer, UserSubscriptionsSerializer,
+    SubscriptionsSerializer
 )
 from .pagination import PageNumberLimitPagination
 from .permissions import IsResponsibleUserOrReadOnly
 from .filters import PartialNameFilter, RecipeFilter
 from .decorators import not_allowed_put_method
+from .utils import Ingredient as IngrObj
 
 
 class UserViewSet(
@@ -103,22 +105,22 @@ class UserViewSet(
         pagination_class=PageNumberLimitPagination,
     )
     def subscriptions(self, request):
-        q = self.queryset.filter(subscribers__follower=request.user)
+        queryset = self.queryset.filter(subscribers__follower=request.user)
 
-        page = self.paginate_queryset(q)
+        page = self.paginate_queryset(queryset)
         context = {
             'request': request,
         }
         if page is not None:
-            serializer = SubscriptionsSerializer(
+            serializer = UserSubscriptionsSerializer(
                 page,
                 many=True,
                 context=context
             )
             return self.get_paginated_response(serializer.data)
 
-        serializer = SubscriptionsSerializer(
-            q,
+        serializer = UserSubscriptionsSerializer(
+            queryset,
             many=True,
             context=context
         )
@@ -132,36 +134,36 @@ class UserViewSet(
     def subscribe(self, request, pk):
         pk = int(pk)
         user = get_object_or_404(self.queryset, pk=pk)
-        if request.method == 'POST':
-            if user.subscribers.filter(follower=request.user).exists():
-                return Response(
-                    {'errors': 'Пользователь уже подписан.'},
-                    status=status.HTTP_400_BAD_REQUEST
+
+        serializer = SubscriptionsSerializer(
+            data={
+                'user': user.pk,
+                'follower': request.user.pk
+            },
+            context={'request': request}
+        )
+        if serializer.is_valid():
+            if request.method == 'POST':
+                serializer.save()
+
+                serializer_resp = UserSubscriptionsSerializer(
+                    user,
+                    context={'request': request}
                 )
-            if user == request.user:
                 return Response(
-                    {'errors': 'Пользователь не может подписаться на себя.'},
-                    status=status.HTTP_400_BAD_REQUEST
+                    serializer_resp.data,
+                    status=status.HTTP_200_OK
                 )
-            serializer = SubscriptionsSerializer(
-                user,
-                context={'request': request}
-            )
-            user.subscribers.create(
-                follower=request.user
-            )
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        elif request.method == 'DELETE':
-            if not user.subscribers.filter(follower=request.user).exists():
-                return Response(
-                    {'errors': 'Пользователь не подписан.'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            user.subscribers.filter(
-                follower=request.user
-            ).delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+            elif request.method == 'DELETE':
+                user.subscribers.filter(
+                    follower=request.user
+                ).delete()
+                return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
 
 class TagViewSet(
@@ -185,7 +187,7 @@ class IngredientViewSet(
 @not_allowed_put_method
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.prefetch_related(
-        'carts__user', 'tags', 'm2m__ingredient'
+        'tags', 'ingredients'
     ).select_related('author').all()
     serializer_class = RecipeSerializer
     pagination_class = PageNumberLimitPagination
@@ -244,17 +246,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
         permission_classes=(permissions.IsAuthenticated,)
     )
     def download_shopping_cart(self, request):
-        from dataclasses import dataclass
-
-        @dataclass
-        class Ingredient:
-            key: int
-            name: str
-            count: int
-            unit: str
-
-            def __str__(self):
-                return f'{self.name} - {self.count} {self.unit}'
 
         recipes = self.queryset.filter(carts__user=request.user)
         cart = dict()
@@ -268,7 +259,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 )
 
                 if not cart.get(ingredient.id):
-                    cart[ingredient.id] = Ingredient(
+                    cart[ingredient.id] = IngrObj(
                         ingredient.id, ingredient.name,
                         count, ingredient.measurement_unit
                     )

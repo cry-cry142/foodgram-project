@@ -19,6 +19,7 @@ class RecipeAdmin(admin.ModelAdmin):
     inlines = [IngredientRecipeInline]
     search_fields = ('name', 'author')
     list_filter = ('name', 'author', 'tags')
+    description = 'Рецепты'
 
     @admin.display(description='количество подписок')
     def count_subscribers(self, obj):
