@@ -13,7 +13,7 @@ from .serializers import (
     UserSerializer, AnonimusUserSerializer, ChangePasswordSerializer,
     TagSerializer, IngredientSerializer, RecipeSerializer,
     FavouriteRecipesSerializer, UserSubscriptionsSerializer,
-    SubscriptionsSerializer
+    SubscriptionsSerializer, FavouriteSerializer
 )
 from .pagination import PageNumberLimitPagination
 from .permissions import IsResponsibleUserOrReadOnly
@@ -281,37 +281,37 @@ def favorite(request, **kwargs):
     recipe = get_object_or_404(Recipe.objects.prefetch_related(
         'favourite__user'
     ), id=kwargs['pk'])
-    favorite_manager = recipe.favourite
-    if request.method == 'POST':
-        if favorite_manager.filter(user=request.user).exists():
-            return Response(
-                {'errors': 'Вы уже подписаны.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        favorite_manager.create(
-            user=request.user,
-            recipe=recipe
-        )
 
-        serializer = FavouriteRecipesSerializer(
-            instance=recipe,
-            context={
-                'request': request
-            }
-        )
-        return Response(
-            serializer.data,
-            status=status.HTTP_200_OK
-        )
-    if request.method == 'DELETE':
-        if not favorite_manager.filter(user=request.user).exists():
-            return Response(
-                {'errors': 'Вы не подписаны на рецепт.'},
-                status=status.HTTP_400_BAD_REQUEST
+    serializer = FavouriteSerializer(
+        data={
+            'user': request.user.pk,
+            'recipe': recipe.pk
+        },
+        context={'request': request}
+    )
+
+    if serializer.is_valid():
+        if request.method == 'POST':
+            serializer.save()
+
+            serializer_resp = FavouriteRecipesSerializer(
+                instance=recipe,
+                context={
+                    'request': request
+                }
             )
-        favorite = favorite_manager.get(user=request.user)
-        favorite.delete()
-        return Response(
-            status=status.HTTP_204_NO_CONTENT
-        )
-    return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+            return Response(
+                serializer_resp.data,
+                status=status.HTTP_200_OK
+            )
+
+        elif request.method == 'DELETE':
+            recipe.favourite.get(user=request.user).delete()
+            return Response(
+                status=status.HTTP_204_NO_CONTENT
+            )
+
+    return Response(
+        serializer.errors,
+        status=status.HTTP_400_BAD_REQUEST
+    )

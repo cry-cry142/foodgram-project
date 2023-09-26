@@ -6,7 +6,8 @@ from rest_framework.validators import UniqueValidator
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework import serializers
 from recipes.models import (
-    User, Tag, Ingredient, Recipe, IngredientRecipe
+    User, Tag, Ingredient, Recipe, IngredientRecipe,
+    FavouriteRecipes
 )
 from users.models import Subscriptions
 
@@ -208,6 +209,31 @@ class FavouriteRecipesSerializer(serializers.ModelSerializer):
         }
 
 
+class FavouriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FavouriteRecipes
+        fields = (
+            'user', 'recipe'
+        )
+
+    def validate(self, data):
+        method = self.context['request'].method
+        is_exist = data['recipe'].favourite.filter(
+            user=data['user']
+        ).exists()
+
+        if method == 'POST' and is_exist:
+            raise ValidationError(
+                {'errors': 'Пользователь уже подписан.'}
+            )
+        if method == 'DELETE' and not is_exist:
+            raise ValidationError(
+                {'errors': 'Пользователь не подписан.'}
+            )
+
+        return data
+
+
 class UserSubscriptionsSerializer(UserSerializer):
     recipes = serializers.SerializerMethodField(source='recipe.all')
     recipes_count = serializers.SerializerMethodField()
@@ -244,10 +270,6 @@ class SubscriptionsSerializer(serializers.ModelSerializer):
         fields = (
             'user', 'follower'
         )
-        # extra_kwargs = {
-        #     'user': {'required': True, 'read_only': False},
-        #     'follower': {'required': True, 'read_only': False}
-        # }
 
     def validate(self, data):
         method = self.context['request'].method
