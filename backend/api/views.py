@@ -1,4 +1,5 @@
 from django.contrib.auth.hashers import make_password, check_password
+from django.core.files.storage import default_storage
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
@@ -200,10 +201,23 @@ class RecipeViewSet(viewsets.ModelViewSet):
             author=self.request.user,
         )
 
+    def update(self, request, *args, **kwargs):
+        if request.method == 'PATCH':
+            recipe = get_object_or_404(self.queryset, id=kwargs.get('pk'))
+            file = recipe.image.file
+            file_path = file.name
+            file.close()
+            default_storage.delete(file_path)
+        return super().update(request, *args, **kwargs)
+
     def destroy(self, request, *args, **kwargs):
         recipe = get_object_or_404(self.queryset, id=kwargs.get('pk'))
         recipe.tags.clear()
         recipe.ingredients.clear()
+        file = recipe.image.file
+        file_path = file.name
+        file.close()
+        default_storage.delete(file_path)
         return super().destroy(request, *args, **kwargs)
 
     @action(
@@ -253,7 +267,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             ingredient_list = recipe.ingredients.all()
             for ingredient in ingredient_list:
                 count = int(
-                    recipe.m2m.get(
+                    recipe.ingred_recipes.get(
                         ingredient=ingredient
                     ).amount
                 )

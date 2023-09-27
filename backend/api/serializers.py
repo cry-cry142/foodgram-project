@@ -103,7 +103,10 @@ class RecipeIngredientSerializer(serializers.ModelSerializer):
 
 class RecipeSerializer(serializers.ModelSerializer):
     image = Base64ImageField()
-    ingredients = RecipeIngredientSerializer(many=True, source='m2m')
+    ingredients = RecipeIngredientSerializer(
+        many=True,
+        source='ingred_recipes'
+    )
     author = UserSerializer(read_only=True)
     tags = TagSerializer(many=True, required=True)
     is_favorited = serializers.SerializerMethodField()
@@ -132,7 +135,7 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data.pop('tags')
-        ingredients = validated_data.pop('m2m')
+        ingredients = validated_data.pop('ingred_recipes')
         tags = self.initial_data['tags']
         tags = [obj['id'] for obj in tags]
         recipe = self.Meta.model.objects.create(**validated_data)
@@ -150,7 +153,7 @@ class RecipeSerializer(serializers.ModelSerializer):
                 'tags': f'Ожидались параметры \'int\', получены {errors}.'
             })
         for ingredient in ingredients:
-            recipe.m2m.create(
+            recipe.ingred_recipes.create(
                 recipe=recipe,
                 ingredient=ingredient['ingredient'],
                 amount=ingredient['amount']
@@ -159,7 +162,7 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         validated_data.pop('tags')
-        ingredients = validated_data.pop('m2m')
+        ingredients = validated_data.pop('ingred_recipes')
         tags = self.initial_data['tags']
         tags = [obj['id'] for obj in tags]
 
@@ -178,7 +181,7 @@ class RecipeSerializer(serializers.ModelSerializer):
 
         instance.ingredients.clear()
         for ingredient in ingredients:
-            instance.m2m.create(
+            instance.ingred_recipes.create(
                 recipe=instance,
                 ingredient=ingredient['ingredient'],
                 amount=ingredient['amount']
@@ -235,7 +238,7 @@ class FavouriteSerializer(serializers.ModelSerializer):
 
 
 class UserSubscriptionsSerializer(UserSerializer):
-    recipes = serializers.SerializerMethodField(source='recipe.all')
+    recipes = serializers.SerializerMethodField(source='recipes.all')
     recipes_count = serializers.SerializerMethodField()
 
     class Meta:
@@ -254,14 +257,18 @@ class UserSubscriptionsSerializer(UserSerializer):
             )
         except Exception:
             limit = None
-        recipes = obj.recipe.all()
+        recipes = obj.recipes.all()
         if limit:
             recipes = recipes[:limit]
-        serializer = FavouriteRecipesSerializer(recipes, many=True)
+        serializer = FavouriteRecipesSerializer(
+            recipes,
+            context=self.context,
+            many=True,
+        )
         return serializer.data
 
     def get_recipes_count(self, obj):
-        return obj.recipe.count()
+        return obj.recipes.count()
 
 
 class SubscriptionsSerializer(serializers.ModelSerializer):

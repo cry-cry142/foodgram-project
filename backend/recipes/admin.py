@@ -8,6 +8,7 @@ from .models import (
 class IngredientRecipeInline(admin.TabularInline):
     model = IngredientRecipe
     extra = 1
+    min_num = 1
 
 
 @admin.register(Recipe)
@@ -36,6 +37,9 @@ class IngredientAdmin(admin.ModelAdmin):
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
     list_display = ('name', 'color', 'slug')
+    prepopulated_fields = {
+        'slug': ('name',)
+    }
 
 
 @admin.register(FavouriteRecipes)

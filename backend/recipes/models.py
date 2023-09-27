@@ -1,12 +1,18 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from colorfield.fields import ColorField
+
+from .utils import upload_to
 
 User = get_user_model()
 
 
 class Tag(models.Model):
+    """
+    Модель "Тегов" для рецепта.
+    """
     name = models.CharField('Название', max_length=200)
-    color = models.CharField('Цвет', max_length=7)
+    color = ColorField('Цвет', max_length=7)
     slug = models.SlugField('Слаг', max_length=200, unique=True)
 
     class Meta:
@@ -24,15 +30,19 @@ class Tag(models.Model):
 
 
 class Recipe(models.Model):
+    """
+    Модель "Рецептов".
+    """
     name = models.CharField('Название', max_length=200)
     image = models.ImageField(
         'Изображение',
-        upload_to='recipes/images/',
+        upload_to=upload_to,
         null=True,
         default=None
     )
     tags = models.ManyToManyField(
         'Tag',
+        related_name='recipes',
         verbose_name='Теги'
     )
     text = models.TextField('Описание')
@@ -45,7 +55,7 @@ class Recipe(models.Model):
     author = models.ForeignKey(
         User,
         verbose_name='Автор',
-        related_name='recipe',
+        related_name='recipes',
         on_delete=models.CASCADE
     )
     date = models.DateTimeField('Дата публикации', auto_now_add=True)
@@ -60,6 +70,9 @@ class Recipe(models.Model):
 
 
 class Ingredient(models.Model):
+    """
+    Модель "Ингредиентов" для рецепта.
+    """
     name = models.CharField('Название', max_length=200)
     measurement_unit = models.CharField('Единица измерения', max_length=200)
 
@@ -72,16 +85,19 @@ class Ingredient(models.Model):
 
 
 class IngredientRecipe(models.Model):
+    """
+    Промежуточная модель "Ингредиенты Рецепта".
+    """
     recipe = models.ForeignKey(
         'Recipe',
         verbose_name='Рецепт',
-        related_name='m2m',
+        related_name='ingred_recipes',
         on_delete=models.CASCADE
     )
     ingredient = models.ForeignKey(
         'Ingredient',
         verbose_name='Ингредиент',
-        related_name='m2m',
+        related_name='ingred_recipes',
         on_delete=models.CASCADE
     )
     amount = models.IntegerField('Количество')
@@ -105,6 +121,9 @@ class IngredientRecipe(models.Model):
 
 
 class FavouriteRecipes(models.Model):
+    """
+    Промежуточная модель "Подписок на Рецепты".
+    """
     user = models.ForeignKey(
         User,
         verbose_name='Подписчик',
@@ -133,6 +152,9 @@ class FavouriteRecipes(models.Model):
 
 
 class ShoppingCart(models.Model):
+    """
+    Модель "Продуктовой Корзины".
+    """
     user = models.ForeignKey(
         User,
         verbose_name='Пользователь',
