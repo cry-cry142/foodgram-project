@@ -55,6 +55,7 @@ Backend проекта реализован на Django и использует 
 
 ## Пример запросов API
 **[POST] http://<hostname>/api/users/**
+
 *Request samples*
 ```json
 {
@@ -77,6 +78,7 @@ Backend проекта реализован на Django и использует 
 ```
 
 **[GET] http://<hostname>/api/recipes/**
+
 *Response samples*
 ```json
 {
