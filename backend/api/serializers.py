@@ -6,8 +6,10 @@ from rest_framework.validators import UniqueValidator
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework import serializers
 from recipes.models import (
-    User, Tag, Ingredient, Recipe, IngredientRecipe
+    User, Tag, Ingredient, Recipe, IngredientRecipe,
+    FavouriteRecipes
 )
+from users.models import Subscriptions
 
 
 class AnonimusUserSerializer(serializers.ModelSerializer):
@@ -101,7 +103,10 @@ class RecipeIngredientSerializer(serializers.ModelSerializer):
 
 class RecipeSerializer(serializers.ModelSerializer):
     image = Base64ImageField()
-    ingredients = RecipeIngredientSerializer(many=True, source='m2m')
+    ingredients = RecipeIngredientSerializer(
+        many=True,
+        source='ingred_recipes'
+    )
     author = UserSerializer(read_only=True)
     tags = TagSerializer(many=True, required=True)
     is_favorited = serializers.SerializerMethodField()
@@ -130,7 +135,7 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data.pop('tags')
-        ingredients = validated_data.pop('m2m')
+        ingredients = validated_data.pop('ingred_recipes')
         tags = self.initial_data['tags']
         tags = [obj['id'] for obj in tags]
         recipe = self.Meta.model.objects.create(**validated_data)
@@ -148,7 +153,7 @@ class RecipeSerializer(serializers.ModelSerializer):
                 'tags': f'Ожидались параметры \'int\', получены {errors}.'
             })
         for ingredient in ingredients:
-            recipe.m2m.create(
+            recipe.ingred_recipes.create(
                 recipe=recipe,
                 ingredient=ingredient['ingredient'],
                 amount=ingredient['amount']
@@ -157,7 +162,7 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         validated_data.pop('tags')
-        ingredients = validated_data.pop('m2m')
+        ingredients = validated_data.pop('ingred_recipes')
         tags = self.initial_data['tags']
         tags = [obj['id'] for obj in tags]
 
@@ -176,7 +181,7 @@ class RecipeSerializer(serializers.ModelSerializer):
 
         instance.ingredients.clear()
         for ingredient in ingredients:
-            instance.m2m.create(
+            instance.ingred_recipes.create(
                 recipe=instance,
                 ingredient=ingredient['ingredient'],
                 amount=ingredient['amount']
@@ -207,8 +212,33 @@ class FavouriteRecipesSerializer(serializers.ModelSerializer):
         }
 
 
-class SubscriptionsSerializer(UserSerializer):
-    recipes = serializers.SerializerMethodField(source='recipe.all')
+class FavouriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FavouriteRecipes
+        fields = (
+            'user', 'recipe'
+        )
+
+    def validate(self, data):
+        method = self.context['request'].method
+        is_exist = data['recipe'].favourite.filter(
+            user=data['user']
+        ).exists()
+
+        if method == 'POST' and is_exist:
+            raise ValidationError(
+                {'errors': 'Пользователь уже подписан.'}
+            )
+        if method == 'DELETE' and not is_exist:
+            raise ValidationError(
+                {'errors': 'Пользователь не подписан.'}
+            )
+
+        return data
+
+
+class UserSubscriptionsSerializer(UserSerializer):
+    recipes = serializers.SerializerMethodField(source='recipes.all')
     recipes_count = serializers.SerializerMethodField()
 
     class Meta:
@@ -227,11 +257,44 @@ class SubscriptionsSerializer(UserSerializer):
             )
         except Exception:
             limit = None
-        recipes = obj.recipe.all()
+        recipes = obj.recipes.all()
         if limit:
             recipes = recipes[:limit]
-        serializer = FavouriteRecipesSerializer(recipes, many=True)
+        serializer = FavouriteRecipesSerializer(
+            recipes,
+            context=self.context,
+            many=True,
+        )
         return serializer.data
 
     def get_recipes_count(self, obj):
-        return obj.recipe.count()
+        return obj.recipes.count()
+
+
+class SubscriptionsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Subscriptions
+        fields = (
+            'user', 'follower'
+        )
+
+    def validate(self, data):
+        method = self.context['request'].method
+        is_exist = data['user'].subscribers.filter(
+            follower=data['follower']
+        ).exists()
+
+        if method == 'POST' and is_exist:
+            raise ValidationError(
+                {'errors': 'Пользователь уже подписан.'}
+            )
+        if method == 'DELETE' and not is_exist:
+            raise ValidationError(
+                {'errors': 'Пользователь не подписан.'}
+            )
+        if data['user'] == data['follower']:
+            raise ValidationError(
+                {'errors': 'Пользователь не может подписаться на себя.'}
+            )
+
+        return data

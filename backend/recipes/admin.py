@@ -8,6 +8,7 @@ from .models import (
 class IngredientRecipeInline(admin.TabularInline):
     model = IngredientRecipe
     extra = 1
+    min_num = 1
 
 
 @admin.register(Recipe)
@@ -19,6 +20,7 @@ class RecipeAdmin(admin.ModelAdmin):
     inlines = [IngredientRecipeInline]
     search_fields = ('name', 'author')
     list_filter = ('name', 'author', 'tags')
+    description = 'Рецепты'
 
     @admin.display(description='количество подписок')
     def count_subscribers(self, obj):
@@ -35,6 +37,9 @@ class IngredientAdmin(admin.ModelAdmin):
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
     list_display = ('name', 'color', 'slug')
+    prepopulated_fields = {
+        'slug': ('name',)
+    }
 
 
 @admin.register(FavouriteRecipes)
