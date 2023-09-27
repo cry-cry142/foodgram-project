@@ -123,4 +123,4 @@ Backend проекта реализован на Django и использует 
 }
 ```
 
-Полную документацию можно найти [тут](https://foodgram-as.sytes.net/api/redoc/)
+Полную документацию можно найти [тут](https://foodgram-as.sytes.net/api/docs/)
