@@ -203,11 +203,13 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         if request.method == 'PATCH':
-            recipe = get_object_or_404(self.queryset, id=kwargs.get('pk'))
-            file = recipe.image.file
-            file_path = file.name
-            file.close()
-            default_storage.delete(file_path)
+            image = request.data.get('image')
+            if image and image.startswith('data:image'):
+                recipe = get_object_or_404(self.queryset, id=kwargs.get('pk'))
+                file = recipe.image.file
+                file_path = file.name
+                file.close()
+                default_storage.delete(file_path)
         return super().update(request, *args, **kwargs)
 
     def destroy(self, request, *args, **kwargs):
