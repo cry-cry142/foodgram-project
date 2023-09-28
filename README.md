@@ -54,7 +54,7 @@ Backend проекта реализован на Django и использует 
     ```
 
 ## Пример запросов API
-**[POST] http://<hostname>/api/users/**
+**[POST] http://hostname/api/users/**
 
 *Request samples*
 ```json
@@ -77,7 +77,7 @@ Backend проекта реализован на Django и использует 
 }
 ```
 
-**[GET] http://<hostname>/api/recipes/**
+**[GET] http://hostname/api/recipes/**
 
 *Response samples*
 ```json
@@ -124,3 +124,11 @@ Backend проекта реализован на Django и использует 
 ```
 
 Полную документацию можно найти [тут](https://foodgram-as.sytes.net/api/docs/)
+
+## ADMINISTARATIONS
+
+Доступ к админке можно получить [тут](https://foodgram-as.sytes.net/admin/)
+
+Используйте учетные данные:
+- username: *django_admin*
+- password: *Alizee92!*

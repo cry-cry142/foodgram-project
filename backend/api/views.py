@@ -188,7 +188,7 @@ class IngredientViewSet(
 @not_allowed_put_method
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.prefetch_related(
-        'tags', 'ingredients'
+        'tags', 'ingred_recipes'
     ).select_related('author').all()
     serializer_class = RecipeSerializer
     pagination_class = PageNumberLimitPagination

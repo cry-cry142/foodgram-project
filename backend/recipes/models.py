@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.core.validators import MinValueValidator
 from colorfield.fields import ColorField
 
 from .utils import upload_to
@@ -46,7 +47,10 @@ class Recipe(models.Model):
         verbose_name='Теги'
     )
     text = models.TextField('Описание')
-    cooking_time = models.IntegerField('Время готовки')
+    cooking_time = models.PositiveSmallIntegerField(
+        'Время готовки',
+        validators=[MinValueValidator(1)],
+    )
     ingredients = models.ManyToManyField(
         'Ingredient',
         verbose_name='Ингредиенты',
@@ -100,7 +104,10 @@ class IngredientRecipe(models.Model):
         related_name='ingred_recipes',
         on_delete=models.CASCADE
     )
-    amount = models.IntegerField('Количество')
+    amount = models.PositiveSmallIntegerField(
+        'Количество',
+        validators=[MinValueValidator(1)]
+    )
 
     class Meta:
         verbose_name = 'Ингредиент-Рецепт'

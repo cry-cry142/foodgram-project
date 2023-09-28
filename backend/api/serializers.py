@@ -121,6 +121,26 @@ class RecipeSerializer(serializers.ModelSerializer):
         )
         depth = 1
 
+    def validate_ingredients(self, value):
+        ingredients = [obj['ingredient'].id for obj in value]
+        unique_ingredients = set(ingredients)
+        error = []
+        if len(ingredients) != len(unique_ingredients):
+            for ingredient in ingredients:
+                err_message = {}
+                if ingredient in unique_ingredients:
+                    unique_ingredients.discard(ingredient)
+                else:
+                    err_message = {'id': [
+                        'Ингридиент должен быть уникальным.',
+                        'Проверьте, что в игридиентах нет повторов.'
+                    ]}
+                error.append(err_message)
+            raise ValidationError(
+                error
+            )
+        return value
+
     def get_is_favorited(self, obj):
         user = self.context['request'].user
         if user.is_authenticated and obj.favourite.filter(user=user).exists():

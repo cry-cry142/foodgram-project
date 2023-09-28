@@ -14,7 +14,7 @@ class IngredientRecipeInline(admin.TabularInline):
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
     list_display = (
-        'name', 'image', 'text', 'cooking_time', 'author', 'count_subscribers'
+        'name', 'image', 'text', 'cooking_time', 'author', 'count_favourites'
     )
     filter_vertical = ('tags',)
     inlines = [IngredientRecipeInline]
@@ -22,8 +22,8 @@ class RecipeAdmin(admin.ModelAdmin):
     list_filter = ('name', 'author', 'tags')
     description = 'Рецепты'
 
-    @admin.display(description='количество подписок')
-    def count_subscribers(self, obj):
+    @admin.display(description='количество в избранном')
+    def count_favourites(self, obj):
         return obj.favourite.count()
 
 
