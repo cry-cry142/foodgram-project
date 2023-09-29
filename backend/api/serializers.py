@@ -126,16 +126,17 @@ class RecipeSerializer(serializers.ModelSerializer):
         unique_ingredients = set(ingredients)
         error = []
         if len(ingredients) != len(unique_ingredients):
-            for ingredient in ingredients:
-                err_message = {}
-                if ingredient in unique_ingredients:
-                    unique_ingredients.discard(ingredient)
+            err_obj = []
+            for ingred_recipe in value:
+                ingredient = ingred_recipe['ingredient']
+                if ingredient.id in unique_ingredients:
+                    unique_ingredients.discard(ingredient.id)
                 else:
-                    err_message = {'id': [
-                        'Ингридиент должен быть уникальным.',
-                        'Проверьте, что в игридиентах нет повторов.'
-                    ]}
-                error.append(err_message)
+                    err_obj.append(ingredient.name)
+            error = [{'detail': [
+                f'Имеются повторы ингредиентов: {err_obj}. '
+                'Ингредиенты не должны повторятся.'
+            ]}]
             raise ValidationError(
                 error
             )
